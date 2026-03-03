@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartAgro — Farmer Buddy</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+  <header>
+    <h1>🌾 SmartAgro · Farmer Buddy</h1>
+    <span>AI-Powered Agriculture Platform</span>
+  </header>
+
+  <nav>
+    <button class="active" onclick="showPage('soil', this)">🌱 Soil Analyzer</button>
+    <button onclick="showPage('chat', this)">🤖 AI Chatbot</button>
+    <button onclick="showPage('labor', this)">📹 Labor Monitor</button>
+  </nav>
+
+  <main>
+
+    <!-- ══════════════════════════════════════════
+         PAGE 1 — SOIL QUALITY ANALYZER
+         Sends image to Flask → gets CNN prediction back
+    ══════════════════════════════════════════ -->
+    <div id="page-soil" class="page active">
+
+      <div class="card">
+        <h2>Soil Quality Prediction</h2>
+        <p class="subtitle">
+          Upload a clear photo of your soil. Our CNN deep learning model will
+          identify the soil type and provide fertility, pH, moisture estimates
+          and crop recommendations.
+        </p>
+
+        <!-- Server connection indicator -->
+        <div id="server-badge" class="badge-error">
+          <span class="badge-dot dot-error" id="badge-dot"></span>
+          <span id="badge-text">Checking connection to Flask server…</span>
+        </div>
+
+        <!-- Image upload -->
+        <label class="upload-zone" for="soil-input">
+          <div class="icon">📷</div>
+          <p><strong>Click to upload</strong> a soil photo</p>
+          <p>JPG or PNG — take the photo in daylight for best accuracy</p>
+          <input type="file" id="soil-input" accept="image/*" onchange="handleSoilImage(event)" />
+        </label>
+
+        <img id="soil-preview" alt="Soil preview" />
+
+        <button class="btn btn-primary" id="soil-btn" onclick="analyzeSoil()" disabled>
+          🔍 Analyze Soil
+        </button>
+
+        <!-- Error message (shown on failure) -->
+        <div class="error-box" id="error-box"></div>
+
+        <!-- ── RESULT SECTION (hidden until prediction returns) ── -->
+        <div id="result-section">
+
+          <!-- Headline -->
+          <div class="result-headline">
+            <div>
+              <div class="soil-name" id="res-name">—</div>
+              <div class="soil-sub" id="res-also">—</div>
+            </div>
+            <div class="confidence-badge" id="res-conf">—% confidence</div>
+          </div>
+
+          <!-- Stats grid -->
+          <div class="stats-grid">
+            <div class="stat-cell">
+              <div class="stat-label">Soil Type</div>
+              <div class="stat-value" id="res-type">—</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Fertility</div>
+              <div class="stat-value" id="res-fert">—</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">pH Range</div>
+              <div class="stat-value" id="res-ph">—</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Moisture</div>
+              <div class="stat-value" id="res-moist">—</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Texture</div>
+              <div class="stat-value" id="res-texture">—</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Organic Matter</div>
+              <div class="stat-value" id="res-organic">—</div>
+            </div>
+          </div>
+
+          <!-- Best crops -->
+          <div class="crops-section">
+            <h4>🌿 Best Crops for This Soil</h4>
+            <div class="crop-tags" id="res-crops"></div>
+          </div>
+
+          <!-- Improvement tip -->
+          <div class="improvement-section">
+            <h4>💡 Improvement Tip</h4>
+            <p id="res-tip">—</p>
+          </div>
+
+          <!-- Confidence bar chart for all classes -->
+          <div class="conf-chart">
+            <h4>Model Confidence — All Soil Types</h4>
+            <div id="conf-bars"></div>
+          </div>
+
+        </div><!-- end result-section -->
+      </div>
+
+    </div><!-- end page-soil -->
+
+
+    <!-- ══════════════════════════════════════════
+         PAGE 2 — AI AGRONOMIST CHATBOT
+    ══════════════════════════════════════════ -->
+    <div id="page-chat" class="page">
+      <div class="card">
+        <h2>AI Agronomist Chatbot</h2>
+        <p class="subtitle">
+          Ask anything about soil, crops, fertilizers, pests, or sustainable farming.
+        </p>
+        <div id="chat-messages">
+          <div class="msg bot">
+            👋 Hello! I'm your AI Agronomist. Ask me anything about farming,
+            soil health, crop diseases, irrigation, or sustainable agriculture!
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="e.g. What fertilizer suits sandy soil?"
+            onkeydown="if(event.key==='Enter') sendChat()" />
+          <button class="btn btn-primary" id="chat-btn" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════
+         PAGE 3 — LABOR MONITOR (placeholder)
+    ══════════════════════════════════════════ -->
+    <div id="page-labor" class="page">
+      <div class="card">
+        <h2>Agriculture Labor Monitor</h2>
+        <p class="subtitle">
+          Bodycam video analysis for worker activity tracking and safety compliance.
+        </p>
+        <div class="placeholder-box">
+          <div class="icon">🎥</div>
+          <p><strong>Video Analysis Module — Coming Soon</strong></p>
+          <p style="margin-top:8px; font-size:0.85rem;">
+            Upload MP4 bodycam footage for AI-powered<br />
+            activity detection and safety monitoring.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- JavaScript -->
+  <script src="app.js"></script>
+
+</body>
+
+</html>

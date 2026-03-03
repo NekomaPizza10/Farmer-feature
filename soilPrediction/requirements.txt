@@ -1,0 +1,24 @@
+# ============================================================
+# SmartAgro — Soil AI  |  requirements.txt
+# Install all at once:  pip install -r requirements.txt
+# ============================================================
+
+# Deep Learning — model training & inference
+tensorflow==2.15.0          # CNN / MobileNetV2 (use tensorflow-cpu if no GPU)
+keras==2.15.0               # High-level model API
+
+# Image processing
+Pillow==10.2.0              # Open and resize images
+numpy==1.26.4               # Array math
+
+# Web server
+flask==3.0.2                # API server
+flask-cors==4.0.0           # Allow frontend → backend requests
+
+# Dataset download helper (optional but handy)
+kaggle==1.6.6               # Download datasets from Kaggle CLI
+
+# Model performance reporting
+scikit-learn==1.4.1.post1        # Confusion matrix, classification report
+matplotlib==3.8.3           # Plot training graphs
+seaborn==0.13.2             # Pretty confusion matrix heatmap

@@ -1,0 +1,20 @@
+# Virtual environment — never commit this
+venv/
+env/
+.env/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Model output (large binary file — optional to exclude)
+# soil_model.h5
+
+# Training output
+training_graph.png
+
+# OS files
+.DS_Store
+Thumbs.db
