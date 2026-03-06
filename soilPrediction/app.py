@@ -19,6 +19,30 @@ from PIL import Image
 import tensorflow as tf
 import io
 
+# ============================================================
+# LOAD ENVIRONMENT — Ensure HF_API_KEY is available FIRST
+# ============================================================
+try:
+    from dotenv import load_dotenv
+    from pathlib import Path
+    env_file = Path(__file__).parent / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        print(f"✅ Loaded .env from {env_file}")
+except Exception as e:
+    print(f"⚠️  Could not load .env: {e}")
+
+HF_API_KEY = os.getenv("HF_API_KEY")
+if not HF_API_KEY:
+    print("⚠️  WARNING: HF_API_KEY not set yet")
+    print("   To set it permanently on Windows:")
+    print("   [System.Environment]::SetEnvironmentVariable('HF_API_KEY', 'your_key', 'User')")
+    print("   Then restart PowerShell/CMD\n")
+else:
+    print(f"✅ HF_API_KEY loaded: {HF_API_KEY[:20]}...")
+
+from leaf_service import predict_leaf
+
 app = Flask(__name__)
 
 # Allow requests from the frontend HTML file
@@ -92,14 +116,19 @@ SOIL_INFO = {
 # ─────────────────────────────────────────
 print("⏳ Loading soil model...")
 
+model = None
 if not os.path.exists(MODEL_PATH):
     print(f"⚠️  WARNING: {MODEL_PATH} not found.")
     print("   Run  python train_model.py  first to generate the model.")
-    model = None
 else:
-    model = tf.keras.models.load_model(MODEL_PATH)
-    print(f"✅ Model loaded from {MODEL_PATH}")
-
+    try:
+        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        print(f"✅ Model loaded from {MODEL_PATH}")
+    except Exception as e:
+        print("⚠️  WARNING: Soil model failed to load.")
+        print("   You can still use Leaf Detection.")
+        print("   Error:", e)
+        model = None
 
 # ─────────────────────────────────────────
 # HELPER — preprocess an uploaded image
@@ -189,6 +218,25 @@ def predict():
         # Return error message if anything goes wrong
         return jsonify({"error": str(e)}), 500
 
+@app.route("/leaf/predict", methods=["POST"])
+def leaf_predict():
+    if "image" not in request.files:
+        return jsonify({"error": "No image file sent. Use key 'image' in form-data."}), 400
+
+    file = request.files["image"]
+
+    if file.filename == "":
+        return jsonify({"error": "Empty filename — please select an image."}), 400
+
+    if not (file.mimetype or "").startswith("image/"):
+        return jsonify({"error": f"File must be an image. Got {file.mimetype}"}), 400
+
+    result = predict_leaf(file)
+
+    if "error" in result:
+        return jsonify(result), 502
+
+    return jsonify(result)
 
 # ─────────────────────────────────────────
 # START SERVER

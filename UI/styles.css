@@ -530,3 +530,6 @@ main {
     padding: 20px;
   }
 }
+nav {
+  flex-wrap: wrap;
+}
