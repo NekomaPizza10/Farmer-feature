@@ -34,6 +34,14 @@ async function checkServer() {
 }
 checkServer(); // run on page load
 
+// ── LEAF INPUT HOOKUP (robust) ─────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  const leafInput = document.getElementById("leaf-input");
+  if (leafInput) {
+    leafInput.addEventListener("change", handleLeafImage);
+  }
+});
+
 
 // ── SOIL IMAGE UPLOAD ───────────────────────────────────────
 let selectedFile = null;
@@ -58,6 +66,109 @@ function handleSoilImage(event) {
   document.getElementById('error-box').style.display = 'none';
 }
 
+
+// ── LEAF IMAGE UPLOAD ───────────────────────────────────────
+let leafFile = null;
+
+function handleLeafImage(event) {
+  const file = event.target.files[0];
+  const preview = document.getElementById('leaf-preview');
+  const btn = document.getElementById('leaf-btn');
+
+  // Hide old result/error if they exist
+  const res = document.getElementById('leaf-result');
+  const err = document.getElementById('leaf-error');
+  if (res) res.style.display = 'none';
+  if (err) err.style.display = 'none';
+
+  if (!file) {
+    leafFile = null;
+    if (preview) preview.style.display = 'none';
+    if (btn) btn.disabled = true;
+    return;
+  }
+
+  leafFile = file;
+
+  // Show preview (same style as soil)
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (preview) {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+    }
+  };
+  reader.readAsDataURL(file);
+
+  if (btn) btn.disabled = false;
+}
+
+
+// ── ANALYZE LEAF — calls Flask /leaf/predict ─────────────────
+async function analyzeLeaf() {
+  if (!leafFile) return;
+
+  const btn = document.getElementById('leaf-btn');
+  const errBox = document.getElementById('leaf-error');
+  const resultSec = document.getElementById('leaf-result');
+
+  // Loading state
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Detecting…';
+  if (errBox) errBox.style.display = 'none';
+  if (resultSec) resultSec.style.display = 'none';
+
+  try {
+    const formData = new FormData();
+    // IMPORTANT: key must be "image" because Flask expects request.files["image"]
+    formData.append('image', leafFile);
+
+    const response = await fetch(FLASK_URL + '/leaf/predict', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    // Fill UI
+    document.getElementById('leaf-label').textContent =
+      data.top_prediction?.label ?? 'No prediction';
+
+    document.getElementById('leaf-score').textContent =
+      data.top_prediction ? `Confidence: ${(data.top_prediction.score * 100).toFixed(1)}%` : '';
+
+    // Show top 5
+    const predsEl = document.getElementById('leaf-preds');
+    predsEl.innerHTML = (data.predictions || [])
+      .slice(0, 5)
+      .map(p => {
+        const pct = Math.round((p.score || 0) * 100);
+        return `
+          <div class="conf-row">
+            <span class="label">${p.label}</span>
+            <div class="conf-bar-bg">
+              <div class="conf-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <span class="pct">${pct}%</span>
+          </div>
+        `;
+      }).join('');
+
+    resultSec.style.display = 'block';
+    resultSec.scrollIntoView({ behavior: 'smooth' });
+
+  } catch (err) {
+    if (errBox) {
+      errBox.style.display = 'block';
+      errBox.innerHTML = `<strong>⚠️ Error:</strong> ${err.message}
+        <br/><br/>Make sure Flask is running: <code>python app.py</code>`;
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🧪 Detect Disease';
+}
 
 // ── ANALYZE SOIL — calls Flask /predict ─────────────────────
 async function analyzeSoil() {
