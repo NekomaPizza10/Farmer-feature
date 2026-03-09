@@ -1,10 +1,16 @@
-# 🤗 Hugging Face Leaf Detection Setup Guide
+# 🤗 SmartAgro AI Setup Guide
+
+This guide covers setup for **Leaf Detection** and **Soil Prediction** — both use **Hugging Face API** with the same API key.
+
+---
+
+# 🍃 SECTION 1: Leaf Detection (Hugging Face API)
 
 Your leaf detection has been replaced with **Hugging Face Inference API** — a cloud-based AI model that's more accurate and reliable.
 
 ---
 
-## ⚡ Quick Start (5 minutes)
+## ⚡ Quick Start - Leaf Detection (5 minutes)
 
 ### Step 1: Get a FREE Hugging Face API Key
 
@@ -39,7 +45,7 @@ python -c "import os; print('✅ Key set!' if os.getenv('HF_API_KEY') else '❌ 
 ### Step 4: Test the API
 
 ```bash
-cd c:\year2\year2sem2\SEGP\Extra_features\soilPrediction
+cd soilPrediction
 python app.py
 ```
 
@@ -50,7 +56,7 @@ curl.exe -X POST "http://127.0.0.1:5000/leaf/predict" -F "image=@C:\path\to\leaf
 
 ---
 
-## 🎯 What Changed?
+## 🎯 What Changed? (Leaf Detection)
 
 | Feature | Before | After |
 |---------|--------|-------|
@@ -78,7 +84,7 @@ The model now detects:
 
 ---
 
-## 🔧 How It Works
+## 🔧 How Leaf Detection Works
 
 ```python
 # Your Node.js/React UI sends image
@@ -92,7 +98,7 @@ POST /leaf/predict
 
 ---
 
-## 🚨 Troubleshooting
+## 🚨 Troubleshooting - Leaf Detection
 
 ### ❌ "HF_API_KEY environment variable not set"
 **Solution:** Make sure you set the environment variable AND restarted PowerShell/terminal.
@@ -110,7 +116,7 @@ echo $env:HF_API_KEY
 
 ---
 
-## 💡 Advanced Configuration
+## 💡 Advanced Configuration (Leaf Detection)
 
 To use a **different model**, edit `leaf_service.py`:
 
@@ -125,7 +131,7 @@ Browse available models: https://huggingface.co/models?pipeline_tag=image-classi
 
 ---
 
-## 📝 API Response Format
+## 📝 Leaf Detection API Response Format
 
 ```json
 {
@@ -145,11 +151,139 @@ Browse available models: https://huggingface.co/models?pipeline_tag=image-classi
 
 ---
 
-## 🎓 Next Steps
+# 🌱 SECTION 2: Soil Prediction (Hugging Face API)
 
+Soil prediction uses **Hugging Face Gradio Space API** — just like leaf detection, it requires the same `HF_API_KEY`.
+
+---
+
+## ⚡ Quick Start - Soil Prediction (5 minutes)
+
+### Step 1: API Key (Same as Leaf Detection)
+
+If you already set up the leaf detection API key, you're done! Both features use the same `HF_API_KEY`.
+
+If not:
+1. Get your token from: https://huggingface.co/settings/tokens
+2. Set environment variable:
+
+```powershell
+$env:HF_API_KEY = "hf_your_actual_token_here"
+[System.Environment]::SetEnvironmentVariable("HF_API_KEY", "hf_your_token", "User")
+```
+
+### Step 2: Install Dependencies
+
+```bash
+cd soilPrediction
+pip install flask flask-cors requests python-dotenv
+```
+
+### Step 3: Run the Flask Server
+
+```bash
+cd soilPrediction
+python flask_app_backup.py
+```
+
+The server starts at: **http://localhost:5000**
+
+### Step 4: Test Soil Prediction
+
+```powershell
+curl.exe -X POST "http://127.0.0.1:5000/predict" -F "image=@C:\path\to\soil.jpg"
+```
+
+---
+
+## 🎯 Soil Prediction Features
+
+| Feature | Details |
+|---------|---------|
+| **Model Type** | Hugging Face Gradio Space (vinitha003/soil_classification_prediction) |
+| **Input** | Soil image (any format) |
+| **Classes** | Black, Clay, Loam, Sandy |
+| **Speed** | 2-5 seconds (API call) |
+| **API Key** | Uses same `HF_API_KEY` as leaf detection |
+
+---
+
+## 📊 Supported Soil Types
+
+The model classifies 4 soil types:
+
+| Soil Type | Also Known As | Fertility | Best For |
+|-----------|---------------|-----------|----------|
+| **Black** | Regur / Cotton Soil | High | Cotton, Wheat, Sorghum |
+| **Clay** | Heavy Clay Soil | High | Rice, Wheat, Sugarcane |
+| **Loam** | Garden / Ideal Soil | High | Corn, Tomato, Most vegetables |
+| **Sandy** | Light / Coarse Soil | Low | Carrot, Potato, Watermelon |
+
+---
+
+## 🔧 How Soil Prediction Works
+
+```python
+User uploads soil image
+├─ Flask receives image at /predict
+├─ Image encoded to Base64
+├─ Sent to Hugging Face Gradio Space API
+│   └─ vinitha003/soil_classification_prediction
+├─ API returns: soil type label
+├─ Mapped to internal class (Black/Clay/Loam/Sandy)
+└─ Returns JSON with soil properties + recommendations
+```
+
+---
+
+## 🚨 Troubleshooting - Soil Prediction
+
+### ❌ "HF_API_KEY is not set"
+**Solution:** Same as leaf detection — set the environment variable and restart.
+
+### ⏳ "Hugging Face API timed out"
+**Solution:** The API call takes 5-30 seconds. Increase timeout or retry.
+
+### 🔴 "Hugging Face API error"
+**Solutions:**
+- Check your API key is valid: `echo $env:HF_API_KEY`
+- Verify key has `read` permissions
+- Check if the Gradio Space is running: https://huggingface.co/spaces/vinitha003/soil_classification_prediction
+
+---
+
+## 📝 Soil Prediction API Response Format
+
+```json
+{
+  "predicted_class": "Loam",
+  "original_hf_label": "Loam",
+  "confidence": 94.5,
+  "soil_name": "Garden / Ideal Soil",
+  "fertility": "High",
+  "ph_range": "6.0 – 7.0  (Neutral, Ideal)",
+  "moisture": "Medium (balanced drainage)",
+  "texture": "Crumbly, soft, easy to work with",
+  "organic_matter": "High",
+  "best_crops": ["Corn", "Tomato", "Pepper", "Soybean", "Strawberry"],
+  "improvement": "Maintain with regular compost. Ideal soil — minimal intervention needed."
+}
+```
+
+---
+
+## � Next Steps
+
+### For Leaf Detection:
 1. Test with various leaf images
 2. Monitor API response times
-3. If needed, switch between models
+3. If needed, switch between Hugging Face models
 4. Add image preprocessing if lighting is poor
 
-Happy detecting! 🌿
+### For Soil Prediction:
+1. Test with clear soil photos
+2. Verify predictions match known soil types
+3. Try different soil samples for comparison
+4. Check Gradio Space status if API is slow
+
+Happy farming! 🌾🍃�
