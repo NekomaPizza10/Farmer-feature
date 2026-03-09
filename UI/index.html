@@ -118,9 +118,9 @@
             <p id="res-tip">—</p>
           </div>
 
-          <!-- Confidence bar chart for all classes -->
+          <!-- Confidence bar chart for top class -->
           <div class="conf-chart">
-            <h4>Model Confidence — All Soil Types</h4>
+            <h4>Model Confidence</h4>
             <div id="conf-bars"></div>
           </div>
 
@@ -157,45 +157,46 @@
      PAGE 4 — LEAF DISEASE DETECTION
      Sends image to Flask → Flask forwards to HF API → returns labels
 ══════════════════════════════════════════ -->
-<div id="page-leaf" class="page">
-  <div class="card">
-    <h2>Leaf Disease Detection</h2>
-    <p class="subtitle">
-      Upload a clear photo of a plant leaf. The system will predict the most likely disease.
-    </p>
+    <div id="page-leaf" class="page">
+      <div class="card">
+        <h2>Leaf Disease Detection</h2>
+        <p class="subtitle">
+          Upload a clear photo of a plant leaf. The system will predict the most likely disease.
+        </p>
 
-    <!-- Image upload -->
-    <label class="upload-zone" for="leaf-input">
-      <div class="icon">🍃</div>
-      <p><strong>Click to upload</strong> a leaf photo</p>
-      <p>JPG or PNG — use good lighting and focus on the leaf</p>
-      <input type="file" id="leaf-input" accept="image/*" onchange="handleLeafImage(event)" />
-    </label>
+        <!-- Image upload -->
+        <label class="upload-zone" for="leaf-input">
+          <div class="icon">🍃</div>
+          <p><strong>Click to upload</strong> a leaf photo</p>
+          <p>JPG or PNG — use good lighting and focus on the leaf</p>
+          <input type="file" id="leaf-input" accept="image/*" onchange="handleLeafImage(event)" />
+        </label>
 
-    <img id="leaf-preview" alt="Leaf preview" style="display:none; max-width:100%; border-radius:14px; margin-top:12px;" />
+        <img id="leaf-preview" alt="Leaf preview"
+          style="display:none; max-width:100%; border-radius:14px; margin-top:12px;" />
 
-    <button class="btn btn-primary" id="leaf-btn" onclick="analyzeLeaf()" disabled>
-      🧪 Detect Disease
-    </button>
+        <button class="btn btn-primary" id="leaf-btn" onclick="analyzeLeaf()" disabled>
+          🧪 Detect Disease
+        </button>
 
-    <!-- Leaf result -->
-    <div id="leaf-result" style="margin-top:16px; display:none;">
-      <div class="result-headline">
-        <div>
-          <div class="soil-name" id="leaf-label">—</div>
-          <div class="soil-sub" id="leaf-score">—</div>
+        <!-- Leaf result -->
+        <div id="leaf-result" style="margin-top:16px; display:none;">
+          <div class="result-headline">
+            <div>
+              <div class="soil-name" id="leaf-label">—</div>
+              <div class="soil-sub" id="leaf-score">—</div>
+            </div>
+          </div>
+
+          <div class="conf-chart">
+            <h4>Model Confidence — Top Predictions</h4>
+            <div id="leaf-preds"></div>
+          </div>
         </div>
-      </div>
 
-      <div class="conf-chart">
-        <h4>Model Confidence — Top Predictions</h4>
-        <div id="leaf-preds"></div>
+        <div class="error-box" id="leaf-error" style="display:none;"></div>
       </div>
     </div>
-
-    <div class="error-box" id="leaf-error" style="display:none;"></div>
-  </div>
-</div>
 
 
 
@@ -219,7 +220,7 @@
       </div>
     </div>
 
-    
+
   </main>
 
   <!-- JavaScript -->

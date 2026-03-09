@@ -206,7 +206,7 @@ async function analyzeSoil() {
     errorBox.style.display = 'block';
     errorBox.innerHTML = `<strong>⚠️ Error:</strong> ${err.message}
       <br/><br/>Make sure Flask is running:  <code>python app.py</code>
-      <br/>Then train the model first:  <code>python train_model.py</code>`;
+      <br/>(Also ensure HF_API_KEY is present in your .env file!)`;
   }
 
   btn.disabled = false;
@@ -243,19 +243,18 @@ function renderResults(data) {
   // Tip
   document.getElementById('res-tip').textContent = data.improvement;
 
-  // Confidence bar chart
+  // The external API only returns the top confidence scores securely, 
+  // so we will only display the predicted class instead of a full chart.
   const barsEl = document.getElementById('conf-bars');
-  barsEl.innerHTML = Object.entries(data.all_scores)
-    .sort((a, b) => b[1] - a[1])
-    .map(([cls, pct]) => `
+  barsEl.innerHTML = `
       <div class="conf-row">
-        <span class="label">${cls}</span>
+        <span class="label">${data.predicted_class}</span>
         <div class="conf-bar-bg">
-          <div class="conf-bar-fill" style="width:${pct}%"></div>
+          <div class="conf-bar-fill" style="width:${data.confidence}%"></div>
         </div>
-        <span class="pct">${pct}%</span>
+        <span class="pct">${Math.round(data.confidence)}%</span>
       </div>
-    `).join('');
+    `;
 
   // Show result section
   document.getElementById('result-section').style.display = 'block';

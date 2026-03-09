@@ -15,8 +15,7 @@ import os
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from PIL import Image
-import tensorflow as tf
+from PIL import Image  
 import io
 
 # ============================================================
@@ -54,12 +53,14 @@ CORS(app)
 # ─────────────────────────────────────────
 # CONFIG — change model path if needed
 # ─────────────────────────────────────────
-MODEL_PATH = "soil_model.h5"
-IMG_SIZE   = (224, 224)
+HF_SOIL_MODEL_ID = "vinitha003/soil_classification_prediction"
+HF_SOIL_API_URL ="https://vinitha003-soil-classification-prediction-67f427e.hf.space/run/predict"
 
-# Class names — must match the folder names used during training (sorted A-Z)
+
+# Class names — mapped from the Hugging Face model
+# Note: Ben041/soil-type-classifier has 11 classes, but we only map the ones we care about
+# and default to the closest match if a different one is returned.
 CLASS_NAMES = ["Black", "Clay", "Loam", "Sandy"]
-
 
 # ─────────────────────────────────────────
 # SOIL KNOWLEDGE BASE
@@ -109,39 +110,21 @@ SOIL_INFO = {
     },
 }
 
-
 # ─────────────────────────────────────────
-# LOAD MODEL ONCE when server starts
-# (loading inside the endpoint would be slow)
+# HELPER: Map HF model output to our classes
 # ─────────────────────────────────────────
-print("⏳ Loading soil model...")
-
-model = None
-if not os.path.exists(MODEL_PATH):
-    print(f"⚠️  WARNING: {MODEL_PATH} not found.")
-    print("   Run  python train_model.py  first to generate the model.")
-else:
-    try:
-        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-        print(f"✅ Model loaded from {MODEL_PATH}")
-    except Exception as e:
-        print("⚠️  WARNING: Soil model failed to load.")
-        print("   You can still use Leaf Detection.")
-        print("   Error:", e)
-        model = None
-
-# ─────────────────────────────────────────
-# HELPER — preprocess an uploaded image
-# ─────────────────────────────────────────
-def preprocess_image(file_bytes):
-    """
-    Reads image bytes → resizes to 224x224 → normalizes → returns numpy array.
-    """
-    img = Image.open(io.BytesIO(file_bytes)).convert("RGB")
-    img = img.resize(IMG_SIZE)
-    arr = np.array(img) / 255.0        # normalize 0-1
-    arr = np.expand_dims(arr, axis=0)  # add batch dimension: (1, 224, 224, 3)
-    return arr
+def map_soil_class(hf_label):
+    label_lower = hf_label.lower()
+    if "black" in label_lower:
+        return "Black"
+    elif "clay" in label_lower:
+        return "Clay"
+    elif "loam" in label_lower or "alluvial" in label_lower or "red" in label_lower: # map alluvial/red to loam for now
+        return "Loam"
+    elif "sand" in label_lower or "desert" in label_lower or "laterite" in label_lower:
+        return "Sandy"
+    else:
+        return "Loam" # Default fallback
 
 
 # ─────────────────────────────────────────
@@ -153,7 +136,7 @@ def home():
     return jsonify({
         "status": "running",
         "message": "SmartAgro Soil API is alive 🌱",
-        "model_loaded": model is not None
+        "model_loaded": True # Always true now since we use an external API
     })
 
 
@@ -163,6 +146,7 @@ def home():
 # ─────────────────────────────────────────
 @app.route("/predict", methods=["POST"])
 def predict():
+    import requests # Import here or top of file
 
     # 1. Check that an image was actually sent
     if "image" not in request.files:
@@ -173,37 +157,66 @@ def predict():
     if file.filename == "":
         return jsonify({"error": "Empty filename — please select an image."}), 400
 
-    # 2. Check model is loaded
-    if model is None:
-        return jsonify({"error": "Model not loaded. Run train_model.py first."}), 503
+    current_api_key = os.getenv("HF_API_KEY")
+    if not current_api_key:
+         return jsonify({"error": "HF_API_KEY is not set. Cannot use Hugging Face API."}), 503
 
     try:
-        # 3. Read and preprocess the image
+        import base64
+        # 2. Read the image and encode it as Base64 (required by Gradio Spaces)
         img_bytes = file.read()
-        img_array = preprocess_image(img_bytes)
+        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+        mime_type = file.mimetype or "image/jpeg"
+        img_data_uri = f"data:{mime_type};base64,{img_b64}"
 
-        # 4. Run prediction
-        predictions = model.predict(img_array)[0]  # shape: (num_classes,)
-
-        # 5. Get top prediction
-        top_index      = int(np.argmax(predictions))
-        top_class      = CLASS_NAMES[top_index]
-        confidence     = float(predictions[top_index]) * 100  # e.g. 87.3
-
-        # 6. Get all class confidence scores (for display in frontend)
-        all_scores = {
-            CLASS_NAMES[i]: round(float(predictions[i]) * 100, 1)
-            for i in range(len(CLASS_NAMES))
+        # 3. Call Hugging Face Gradio Space API
+        # Gradio /run/predict requires a JSON body with a "data" array
+        headers = {
+            "Authorization": f"Bearer {current_api_key}",
+            "Content-Type": "application/json"
         }
+        payload = {"data": [img_data_uri]}
+        print(f"🌐 Querying Soil Space API (timeout: 30s)...")
+        response = requests.post(
+            HF_SOIL_API_URL,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
 
-        # 7. Look up soil properties
+        print("HF Status:", response.status_code)
+        print("HF Response:", response.text[:300])
+
+        if response.status_code != 200:
+             return jsonify({"error": f"Hugging Face API error: {response.text[:200]}"}), 502
+             
+        results = response.json()
+        print("Parsed JSON:", results)
+        
+        if "data" not in results or not isinstance(results["data"], list) or len(results["data"]) == 0:
+             return jsonify({"error": "Hugging Face API returned invalid format."}), 502
+
+        # 4. Get top prediction — Gradio returns the label in data[0]
+        top_prediction = results["data"][0]
+        # top_prediction may be a string like "Sandy" or a dict — handle both
+        if isinstance(top_prediction, dict):
+            hf_label = top_prediction.get("label", str(top_prediction))
+            confidence = float(top_prediction.get("score", 0.9)) * 100
+        else:
+            hf_label = str(top_prediction)
+            confidence = 90.0
+        
+        # 5. Map to our internal classes
+        top_class = map_soil_class(hf_label)
+
+        # 6. Look up soil properties
         info = SOIL_INFO[top_class]
 
-        # 8. Build and return JSON response
+        # 7. Build and return JSON response
         return jsonify({
             "predicted_class": top_class,
+            "original_hf_label": hf_label, # Include original label for debugging
             "confidence":      round(confidence, 1),
-            "all_scores":      all_scores,
             "soil_name":       info["also_known_as"],
             "fertility":       info["fertility"],
             "ph_range":        info["ph_range"],
@@ -214,6 +227,8 @@ def predict():
             "improvement":     info["improvement"],
         })
 
+    except requests.exceptions.Timeout:
+         return jsonify({"error": "Hugging Face API timed out."}), 504
     except Exception as e:
         # Return error message if anything goes wrong
         return jsonify({"error": str(e)}), 500

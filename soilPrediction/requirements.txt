@@ -3,9 +3,7 @@
 # Install all at once:  pip install -r requirements.txt
 # ============================================================
 
-# Deep Learning — model training & inference
-tensorflow==2.15.0          # CNN / MobileNetV2 (use tensorflow-cpu if no GPU)
-keras==2.15.0               # High-level model API
+
 
 # Image processing
 Pillow==10.2.0              # Open and resize images
