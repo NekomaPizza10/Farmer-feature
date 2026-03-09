@@ -1,0 +1,37 @@
+Upload Soil Image,Soil Analysis,timestamp
+.gradio\flagged\Upload Soil Image\b17659c80b23c206ec72\avinash-kumar-rEIDzqczN7s-unsplash.jpg,"## 🌱 Soil Analysis Results
+
+**Predicted Soil Type:** Clay
+**Confidence:** 99.9%
+
+---
+
+### 📊 Soil Properties
+
+| Property | Value |
+|----------|-------|
+| **Also Known As** | Heavy Clay Soil |
+| **Fertility** | High |
+| **pH Range** | 6.0 – 7.0  (Neutral) |
+| **Moisture** | High (drains slowly) |
+| **Texture** | Smooth, sticky, very dense |
+| **Organic Matter** | Medium–High |
+
+---
+
+### 🌾 Best Crops
+Rice, Wheat, Sugarcane, Cabbage, Broccoli
+
+---
+
+### 💡 Improvement Tips
+Mix in compost or sand to improve drainage. Avoid tilling when wet.
+
+---
+
+### 📈 All Class Probabilities
+
+- **Black:** 0.1% 
+- **Clay:** 99.9% ███████████████████
+- **Loam:** 0.0% 
+- **Sandy:** 0.0% ",2026-03-09 17:23:58.765873
