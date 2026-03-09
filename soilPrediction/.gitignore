@@ -2,6 +2,7 @@
 venv/
 env/
 .env/
+soilPrediction/.env
 
 # Python cache files
 __pycache__/
