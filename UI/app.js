@@ -1,6 +1,6 @@
 // ── CONFIG ──────────────────────────────────────────────────
-// Change FLASK_URL if your server runs on a different port.
-const FLASK_URL = "http://localhost:5000";
+// Unified API endpoint - both Gradio and HTML UI served from same server
+const API_URL = "http://localhost:7860";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 
@@ -14,22 +14,24 @@ function showPage(name, btn) {
 
 
 // ── SERVER HEALTH CHECK ─────────────────────────────────────
-// Pings Flask on load so the user knows if it's running.
+// Pings unified API on load so the user knows if it's running.
 async function checkServer() {
   const badge = document.getElementById('server-badge');
   const dot = document.getElementById('badge-dot');
   const text = document.getElementById('badge-text');
   try {
-    const res = await fetch(FLASK_URL + "/", { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(API_URL + "/api/health", { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
+      const data = await res.json();
+      const mode = data.soil_mode === 'local' ? 'Local Model' : 'Cloud API';
       badge.className = 'badge-ok';
       dot.className = 'badge-dot dot-ok';
-      text.textContent = '✅ Flask server connected — model ready';
+      text.textContent = `✅ Server connected — ${mode} mode`;
     } else { throw new Error(); }
   } catch {
     badge.className = 'badge-error';
     dot.className = 'badge-dot dot-error';
-    text.textContent = '⚠️ Flask server offline — run: python app.py';
+    text.textContent = '⚠️ Server offline — run: python unified_app.py';
   }
 }
 checkServer(); // run on page load
@@ -104,7 +106,7 @@ function handleLeafImage(event) {
 }
 
 
-// ── ANALYZE LEAF — calls Flask /leaf/predict ─────────────────
+// ── ANALYZE LEAF — calls unified API /api/leaf/predict ──────
 async function analyzeLeaf() {
   if (!leafFile) return;
 
@@ -120,25 +122,24 @@ async function analyzeLeaf() {
 
   try {
     const formData = new FormData();
-    // IMPORTANT: key must be "image" because Flask expects request.files["image"]
     formData.append('image', leafFile);
 
-    const response = await fetch(FLASK_URL + '/leaf/predict', {
+    const response = await fetch(API_URL + '/api/leaf/predict', {
       method: 'POST',
       body: formData
     });
 
     const data = await response.json();
-    if (data.error) throw new Error(data.error);
+    if (data.error || !data.success) throw new Error(data.detail || data.error || 'Prediction failed');
 
     // Fill UI
     document.getElementById('leaf-label').textContent =
       data.top_prediction?.label ?? 'No prediction';
 
     document.getElementById('leaf-score').textContent =
-      data.top_prediction ? `Confidence: ${(data.top_prediction.score * 100).toFixed(1)}%` : '';
+      data.top_prediction ? `Confidence: ${data.top_prediction.confidence}` : '';
 
-    // Show top 5
+    // Show top predictions
     const predsEl = document.getElementById('leaf-preds');
     predsEl.innerHTML = (data.predictions || [])
       .slice(0, 5)
@@ -162,7 +163,7 @@ async function analyzeLeaf() {
     if (errBox) {
       errBox.style.display = 'block';
       errBox.innerHTML = `<strong>⚠️ Error:</strong> ${err.message}
-        <br/><br/>Make sure Flask is running: <code>python app.py</code>`;
+        <br/><br/>Make sure server is running: <code>python unified_app.py</code>`;
     }
   }
 
@@ -170,7 +171,7 @@ async function analyzeLeaf() {
   btn.innerHTML = '🧪 Detect Disease';
 }
 
-// ── ANALYZE SOIL — calls Flask /predict ─────────────────────
+// ── ANALYZE SOIL — calls unified API /api/soil/predict ──────
 async function analyzeSoil() {
   if (!selectedFile) return;
 
@@ -189,15 +190,15 @@ async function analyzeSoil() {
     const formData = new FormData();
     formData.append('image', selectedFile);
 
-    // POST to Flask
-    const response = await fetch(FLASK_URL + '/predict', {
+    // POST to unified API
+    const response = await fetch(API_URL + '/api/soil/predict', {
       method: 'POST',
       body: formData
     });
 
     const data = await response.json();
 
-    if (data.error) throw new Error(data.error);
+    if (data.error || !data.success) throw new Error(data.detail || data.error || 'Prediction failed');
 
     // Render results
     renderResults(data);
@@ -205,8 +206,7 @@ async function analyzeSoil() {
   } catch (err) {
     errorBox.style.display = 'block';
     errorBox.innerHTML = `<strong>⚠️ Error:</strong> ${err.message}
-      <br/><br/>Make sure Flask is running:  <code>python app.py</code>
-      <br/>(Also ensure HF_API_KEY is present in your .env file!)`;
+      <br/><br/>Make sure server is running:  <code>python unified_app.py</code>`;
   }
 
   btn.disabled = false;
